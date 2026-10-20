@@ -1,0 +1,151 @@
+[
+  {
+    "id": "a1",
+    "title": "某地发布新版住房限购细则",
+    "author": "财经日报",
+    "platform": "微博",
+    "metric": 4800000,
+    "metric_type": "read",
+    "engagement": {
+      "comments": 3200,
+      "shares": 8100,
+      "likes": 52000
+    },
+    "excerpt": "新版细则明确社保年限与套数认定标准。",
+    "url": "https://e.com/a1",
+    "published_at": "2026-10-18"
+  },
+  {
+    "id": "a2",
+    "title": "某地发布新版住房限购细则（解读）",
+    "author": "财经日报",
+    "platform": "知乎",
+    "metric": 86000,
+    "metric_type": "read",
+    "engagement": {
+      "comments": 410,
+      "shares": 320,
+      "likes": 2600
+    },
+    "excerpt": "新版细则明确社保年限与套数认定标准。",
+    "url": "https://e.com/a2",
+    "published_at": "2026-10-19"
+  },
+  {
+    "id": "b1",
+    "title": "小众开源项目 v2 发布",
+    "author": "dev42",
+    "platform": "v2ex",
+    "metric": 800,
+    "metric_type": "view",
+    "engagement": {
+      "comments": 45,
+      "likes": 60
+    },
+    "excerpt": "重写了调度器，带 benchmark。",
+    "url": "https://e.com/b1",
+    "published_at": "2026-10-12"
+  },
+  {
+    "id": "b2",
+    "title": "关于某开源项目性能优化的探讨",
+    "author": "dev42",
+    "platform": "掘金",
+    "metric": 120,
+    "metric_type": "view",
+    "engagement": {
+      "comments": 6
+    },
+    "excerpt": "对比了三种调度策略。",
+    "url": "https://e.com/b2",
+    "published_at": "2026-10-11"
+  },
+  {
+    "id": "c1",
+    "title": "热搜第一的话题",
+    "author": "网友",
+    "platform": "抖音",
+    "metric": 1,
+    "metric_type": "rank",
+    "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
+    "url": "https://e.com/c1",
+    "published_at": "2026-10-20"
+  },
+  {
+    "id": "c2",
+    "title": "只有几十浏览的碎内容",
+    "author": "路人",
+    "platform": "微博",
+    "metric": 42,
+    "metric_type": "read",
+    "excerpt": "",
+    "url": "https://e.com/c2",
+    "published_at": "2026-10-20"
+  },
+  {
+    "id": "d1",
+    "title": "官媒报道的重要公告",
+    "author": "某发布",
+    "platform": "github",
+    "qualifiers": [
+      "official_or_bluev"
+    ],
+    "excerpt": "公告全文。",
+    "url": "https://e.com/d1",
+    "published_at": "2026-10-15"
+  },
+  {
+    "id": "e1",
+    "title": "国产大模型开源权重引发讨论",
+    "author": "某技术团队",
+    "platform": "reddit",
+    "metric": 2600,
+    "metric_type": "view",
+    "engagement": {
+      "comments": 180,
+      "shares": 40
+    },
+    "excerpt": "社区讨论集中在推理成本与许可证条款。",
+    "url": "https://e.com/e1",
+    "also_on": [
+      "HackerNews"
+    ],
+    "published_at": "2026-10-17"
+  },
+  {
+    "id": "e2",
+    "title": "某新规对中小商户的影响测算",
+    "author": "行业研究所",
+    "platform": "公众号",
+    "metric": 41000,
+    "metric_type": "read",
+    "engagement": {
+      "comments": 60,
+      "likes": 900
+    },
+    "excerpt": "测算覆盖三类商户，结论存在口径差异。",
+    "url": "https://e.com/e2",
+    "qualifiers": [
+      "multi_media_3"
+    ],
+    "published_at": "2026-10-16"
+  },
+  {
+    "id": "g1",
+    "title": "公众号深度：新规落地后中小商户的真实账",
+    "author": "某研究所",
+    "platform": "微信公众号",
+    "url": "https://e.com/g1",
+    "excerpt": "转自公众号，逐项测算三类商户的成本变化。",
+    "published_at": "2026-10-19"
+  },
+  {
+    "id": "g2",
+    "title": "小红书实测：开源模型本地部署避坑记录",
+    "author": "用户B",
+    "platform": "小红书",
+    "url": "https://e.com/g2",
+    "excerpt": "三条部署踩坑提醒。",
+    "published_at": "2026-10-20"
+  }
+]

@@ -1,0 +1,569 @@
+{
+  "topic": "示例：开源模型与新规",
+  "diff": null,
+  "probe": {
+    "total_candidates": 11,
+    "pass_count": 8,
+    "pass_ratio": 0.727,
+    "rejected": 1,
+    "all_below_floor": false,
+    "threshold": 0.5,
+    "reliable": false,
+    "min_sample": 20,
+    "sample_note": "候选仅 11 条，少于探水样本下限 20 条，达标占比仅作参考",
+    "mode": "absolute",
+    "explain": "达标占比 73%，判断为主流热度选题，按绝对门槛筛选"
+  },
+  "stats": {
+    "candidates": 11,
+    "passed_gate": 8,
+    "unverified": 2,
+    "clusters": 9,
+    "selected": 6,
+    "requested": 6,
+    "shortfall": 0,
+    "known_events": 7,
+    "unknown_events": 2,
+    "appendix": 1,
+    "appendix_limit": 1,
+    "budget": 60,
+    "dropped": 0,
+    "generated_at": "2026-10-20 16:20"
+  },
+  "rejected": [
+    {
+      "title": "只有几十浏览的碎内容",
+      "platform": "weibo",
+      "reason": "低于绝对地板 100",
+      "url": "https://e.com/c2"
+    },
+    {
+      "title": "公众号深度：新规落地后中小商户的真实账",
+      "platform": "wechat",
+      "reason": "平台未公开热度指标且无替代判据（单列，不参与热度排名）",
+      "url": "https://e.com/g1"
+    },
+    {
+      "title": "小红书实测：开源模型本地部署避坑记录",
+      "platform": "xiaohongshu",
+      "reason": "平台未公开热度指标且无替代判据（单列，不参与热度排名）",
+      "url": "https://e.com/g2"
+    }
+  ],
+  "selected": [
+    {
+      "cluster_id": "E001",
+      "title": "某地发布新版住房限购细则",
+      "author": "财经日报",
+      "url": "https://e.com/a1",
+      "platforms": [
+        "weibo",
+        "zhihu"
+      ],
+      "sources": [
+        {
+          "platform": "weibo",
+          "url": "https://e.com/a1",
+          "metric": 4800000.0
+        },
+        {
+          "platform": "zhihu",
+          "url": "https://e.com/a2",
+          "metric": 86000.0
+        }
+      ],
+      "excerpt": "新版细则明确社保年限与套数认定标准。",
+      "published_at": "2026-10-18",
+      "dimensions": {
+        "主题域": "政策 / 法规",
+        "内容性质": "一手材料",
+        "信息确定性": "已证实",
+        "影响面": "公共",
+        "立场倾向": "中性",
+        "信源权威度": "权威媒体 / 专业机构",
+        "时效形态": "突发"
+      },
+      "merged_from": [
+        "a1",
+        "a2"
+      ],
+      "duplicate_count": 2,
+      "heat_mix": 0.9643,
+      "heat_pct": 0.9286,
+      "heat_unknown": false,
+      "platform_count": 2,
+      "score": 80.36
+    },
+    {
+      "cluster_id": "E002",
+      "title": "热搜第一的话题",
+      "author": "网友",
+      "url": "https://e.com/c1",
+      "platforms": [
+        "douyin"
+      ],
+      "sources": [
+        {
+          "platform": "douyin",
+          "url": "https://e.com/c1",
+          "metric": 1.0
+        }
+      ],
+      "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
+      "published_at": "2026-10-20",
+      "dimensions": {
+        "主题域": "社会 / 公共事务",
+        "内容性质": "争议",
+        "信息确定性": "待证实",
+        "影响面": "公共",
+        "立场倾向": "质疑",
+        "信源权威度": "UGC / 匿名讨论",
+        "时效形态": "突发"
+      },
+      "merged_from": [
+        "c1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.9643,
+      "heat_pct": 0.9286,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 58.22
+    },
+    {
+      "cluster_id": "E003",
+      "title": "某新规对中小商户的影响测算",
+      "author": "行业研究所",
+      "url": "https://e.com/e2",
+      "platforms": [
+        "wechat"
+      ],
+      "sources": [
+        {
+          "platform": "wechat",
+          "url": "https://e.com/e2",
+          "metric": 41000.0
+        }
+      ],
+      "excerpt": "测算覆盖三类商户，结论存在口径差异。",
+      "published_at": "2026-10-16",
+      "dimensions": {
+        "主题域": "商业 / 财经",
+        "内容性质": "数据",
+        "信息确定性": "待证实",
+        "影响面": "行业",
+        "立场倾向": "负面",
+        "信源权威度": "权威媒体 / 专业机构",
+        "时效形态": "持续"
+      },
+      "merged_from": [
+        "e2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.5987,
+      "heat_pct": 0.5714,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 46.09
+    },
+    {
+      "cluster_id": "E004",
+      "title": "国产大模型开源权重引发讨论",
+      "author": "某技术团队",
+      "url": "https://e.com/e1",
+      "platforms": [
+        "reddit"
+      ],
+      "sources": [
+        {
+          "platform": "reddit",
+          "url": "https://e.com/e1",
+          "metric": 2600.0
+        }
+      ],
+      "excerpt": "社区讨论集中在推理成本与许可证条款。",
+      "published_at": "2026-10-17",
+      "dimensions": {
+        "主题域": "科技 / 产品",
+        "内容性质": "观点",
+        "信息确定性": "待证实",
+        "影响面": "行业",
+        "立场倾向": "正面",
+        "信源权威度": "认证账号",
+        "时效形态": "持续"
+      },
+      "merged_from": [
+        "e1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.3359,
+      "heat_pct": 0.2857,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 33.62
+    },
+    {
+      "cluster_id": "E005",
+      "title": "官媒报道的重要公告",
+      "author": "某发布",
+      "url": "https://e.com/d1",
+      "platforms": [
+        "github"
+      ],
+      "sources": [
+        {
+          "platform": "github",
+          "url": "https://e.com/d1",
+          "metric": null
+        }
+      ],
+      "excerpt": "公告全文。",
+      "published_at": "2026-10-15",
+      "dimensions": {
+        "主题域": "科技 / 产品",
+        "内容性质": "一手材料",
+        "信息确定性": "已证实",
+        "影响面": "行业",
+        "立场倾向": "中性",
+        "信源权威度": "官媒 / 机构发布",
+        "时效形态": "长尾"
+      },
+      "merged_from": [
+        "d1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.4643,
+      "heat_pct": 0.4286,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 30.29
+    },
+    {
+      "cluster_id": "E007",
+      "title": "小众开源项目 v2 发布",
+      "author": "dev42",
+      "url": "https://e.com/b1",
+      "platforms": [
+        "v2ex"
+      ],
+      "sources": [
+        {
+          "platform": "v2ex",
+          "url": "https://e.com/b1",
+          "metric": 800.0
+        }
+      ],
+      "excerpt": "重写了调度器，带 benchmark。",
+      "published_at": "2026-10-12",
+      "dimensions": {
+        "主题域": "科技 / 产品",
+        "内容性质": "教程",
+        "信息确定性": "无法判定",
+        "影响面": "个人",
+        "立场倾向": "正面",
+        "信源权威度": "自媒体 / 个人博主",
+        "时效形态": "长尾"
+      },
+      "merged_from": [
+        "b1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.2037,
+      "heat_pct": 0.1429,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 22.28
+    }
+  ],
+  "appendix": [
+    {
+      "cluster_id": "E006",
+      "title": "小红书实测：开源模型本地部署避坑记录",
+      "author": "用户B",
+      "url": "https://e.com/g2",
+      "platforms": [
+        "xiaohongshu"
+      ],
+      "sources": [
+        {
+          "platform": "xiaohongshu",
+          "url": "https://e.com/g2",
+          "metric": null
+        }
+      ],
+      "excerpt": "三条部署踩坑提醒。",
+      "published_at": "2026-10-20",
+      "dimensions": {},
+      "merged_from": [
+        "g2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.25,
+      "heat_pct": 0.0,
+      "heat_unknown": true,
+      "platform_count": 1,
+      "score": 22.5
+    }
+  ],
+  "clusters": [
+    {
+      "cluster_id": "E001",
+      "title": "某地发布新版住房限购细则",
+      "author": "财经日报",
+      "url": "https://e.com/a1",
+      "platforms": [
+        "weibo",
+        "zhihu"
+      ],
+      "sources": [
+        {
+          "platform": "weibo",
+          "url": "https://e.com/a1",
+          "metric": 4800000.0
+        },
+        {
+          "platform": "zhihu",
+          "url": "https://e.com/a2",
+          "metric": 86000.0
+        }
+      ],
+      "excerpt": "新版细则明确社保年限与套数认定标准。",
+      "published_at": "2026-10-18",
+      "dimensions": {},
+      "merged_from": [
+        "a1",
+        "a2"
+      ],
+      "duplicate_count": 2,
+      "heat_mix": 0.9643,
+      "heat_pct": 0.9286,
+      "heat_unknown": false,
+      "platform_count": 2,
+      "score": 80.36
+    },
+    {
+      "cluster_id": "E002",
+      "title": "热搜第一的话题",
+      "author": "网友",
+      "url": "https://e.com/c1",
+      "platforms": [
+        "douyin"
+      ],
+      "sources": [
+        {
+          "platform": "douyin",
+          "url": "https://e.com/c1",
+          "metric": 1.0
+        }
+      ],
+      "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
+      "published_at": "2026-10-20",
+      "dimensions": {},
+      "merged_from": [
+        "c1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.9643,
+      "heat_pct": 0.9286,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 58.22
+    },
+    {
+      "cluster_id": "E003",
+      "title": "某新规对中小商户的影响测算",
+      "author": "行业研究所",
+      "url": "https://e.com/e2",
+      "platforms": [
+        "wechat"
+      ],
+      "sources": [
+        {
+          "platform": "wechat",
+          "url": "https://e.com/e2",
+          "metric": 41000.0
+        }
+      ],
+      "excerpt": "测算覆盖三类商户，结论存在口径差异。",
+      "published_at": "2026-10-16",
+      "dimensions": {},
+      "merged_from": [
+        "e2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.5987,
+      "heat_pct": 0.5714,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 46.09
+    },
+    {
+      "cluster_id": "E004",
+      "title": "国产大模型开源权重引发讨论",
+      "author": "某技术团队",
+      "url": "https://e.com/e1",
+      "platforms": [
+        "reddit"
+      ],
+      "sources": [
+        {
+          "platform": "reddit",
+          "url": "https://e.com/e1",
+          "metric": 2600.0
+        }
+      ],
+      "excerpt": "社区讨论集中在推理成本与许可证条款。",
+      "published_at": "2026-10-17",
+      "dimensions": {},
+      "merged_from": [
+        "e1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.3359,
+      "heat_pct": 0.2857,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 33.62
+    },
+    {
+      "cluster_id": "E005",
+      "title": "官媒报道的重要公告",
+      "author": "某发布",
+      "url": "https://e.com/d1",
+      "platforms": [
+        "github"
+      ],
+      "sources": [
+        {
+          "platform": "github",
+          "url": "https://e.com/d1",
+          "metric": null
+        }
+      ],
+      "excerpt": "公告全文。",
+      "published_at": "2026-10-15",
+      "dimensions": {},
+      "merged_from": [
+        "d1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.4643,
+      "heat_pct": 0.4286,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 30.29
+    },
+    {
+      "cluster_id": "E006",
+      "title": "小红书实测：开源模型本地部署避坑记录",
+      "author": "用户B",
+      "url": "https://e.com/g2",
+      "platforms": [
+        "xiaohongshu"
+      ],
+      "sources": [
+        {
+          "platform": "xiaohongshu",
+          "url": "https://e.com/g2",
+          "metric": null
+        }
+      ],
+      "excerpt": "三条部署踩坑提醒。",
+      "published_at": "2026-10-20",
+      "dimensions": {},
+      "merged_from": [
+        "g2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.25,
+      "heat_pct": 0.0,
+      "heat_unknown": true,
+      "platform_count": 1,
+      "score": 22.5
+    },
+    {
+      "cluster_id": "E007",
+      "title": "小众开源项目 v2 发布",
+      "author": "dev42",
+      "url": "https://e.com/b1",
+      "platforms": [
+        "v2ex"
+      ],
+      "sources": [
+        {
+          "platform": "v2ex",
+          "url": "https://e.com/b1",
+          "metric": 800.0
+        }
+      ],
+      "excerpt": "重写了调度器，带 benchmark。",
+      "published_at": "2026-10-12",
+      "dimensions": {},
+      "merged_from": [
+        "b1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.2037,
+      "heat_pct": 0.1429,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 22.28
+    },
+    {
+      "cluster_id": "E008",
+      "title": "公众号深度：新规落地后中小商户的真实账",
+      "author": "某研究所",
+      "url": "https://e.com/g1",
+      "platforms": [
+        "wechat"
+      ],
+      "sources": [
+        {
+          "platform": "wechat",
+          "url": "https://e.com/g1",
+          "metric": null
+        }
+      ],
+      "excerpt": "转自公众号，逐项测算三类商户的成本变化。",
+      "published_at": "2026-10-19",
+      "dimensions": {},
+      "merged_from": [
+        "g1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.25,
+      "heat_pct": 0.0,
+      "heat_unknown": true,
+      "platform_count": 1,
+      "score": 21.83
+    },
+    {
+      "cluster_id": "E009",
+      "title": "关于某开源项目性能优化的探讨",
+      "author": "dev42",
+      "url": "https://e.com/b2",
+      "platforms": [
+        "juejin"
+      ],
+      "sources": [
+        {
+          "platform": "juejin",
+          "url": "https://e.com/b2",
+          "metric": 120.0
+        }
+      ],
+      "excerpt": "对比了三种调度策略。",
+      "published_at": "2026-10-11",
+      "dimensions": {},
+      "merged_from": [
+        "b2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.0344,
+      "heat_pct": 0.0,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 10.12
+    }
+  ]
+}
