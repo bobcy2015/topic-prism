@@ -22,13 +22,14 @@
     "selected": 6,
     "requested": 6,
     "shortfall": 0,
-    "known_events": 7,
+    "known_events": 6,
     "unknown_events": 2,
     "appendix": 1,
     "appendix_limit": 1,
+    "quality_blocked": 1,
     "budget": 60,
     "dropped": 0,
-    "generated_at": "2026-10-20 16:20"
+    "generated_at": "2026-10-22 09:23"
   },
   "rejected": [
     {
@@ -48,6 +49,12 @@
       "platform": "xiaohongshu",
       "reason": "平台未公开热度指标且无替代判据（单列，不参与热度排名）",
       "url": "https://e.com/g2"
+    },
+    {
+      "title": "热搜第一的话题",
+      "platform": null,
+      "reason": "来源质量拦截：标题党：标题与正文不符、夸大其词、情绪化诱导",
+      "url": "https://e.com/c1"
     }
   ],
   "selected": [
@@ -90,48 +97,41 @@
       "duplicate_count": 2,
       "heat_mix": 0.9643,
       "heat_pct": 0.9286,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 2,
-      "score": 80.36
+      "score": 74.75,
+      "facts": [
+        {
+          "label": "社保缴纳年限要求",
+          "value": "3",
+          "unit": "年",
+          "as_of": "2026-10-17",
+          "note": "非本地户籍购房"
+        },
+        {
+          "label": "二套房首付比例",
+          "value": "40",
+          "unit": "%",
+          "as_of": "2026-10-17",
+          "note": "较此前下调 10 个百分点"
+        }
+      ],
+      "verifications": [
+        {
+          "claim": "新版限购细则将社保年限从 5 年降到 3 年",
+          "status": "已证实",
+          "by": "当地住建局公告",
+          "date": "2026-10-17",
+          "url": "https://example.com/notice/1001",
+          "note": "公告原文第四条"
+        }
+      ]
     },
     {
       "cluster_id": "E002",
-      "title": "热搜第一的话题",
-      "author": "网友",
-      "url": "https://e.com/c1",
-      "platforms": [
-        "douyin"
-      ],
-      "sources": [
-        {
-          "platform": "douyin",
-          "url": "https://e.com/c1",
-          "metric": 1.0
-        }
-      ],
-      "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
-      "published_at": "2026-10-20",
-      "dimensions": {
-        "主题域": "社会 / 公共事务",
-        "内容性质": "争议",
-        "信息确定性": "待证实",
-        "影响面": "公共",
-        "立场倾向": "质疑",
-        "信源权威度": "UGC / 匿名讨论",
-        "时效形态": "突发"
-      },
-      "merged_from": [
-        "c1"
-      ],
-      "duplicate_count": 1,
-      "heat_mix": 0.9643,
-      "heat_pct": 0.9286,
-      "heat_unknown": false,
-      "platform_count": 1,
-      "score": 58.22
-    },
-    {
-      "cluster_id": "E003",
       "title": "某新规对中小商户的影响测算",
       "author": "行业研究所",
       "url": "https://e.com/e2",
@@ -162,12 +162,73 @@
       "duplicate_count": 1,
       "heat_mix": 0.5987,
       "heat_pct": 0.5714,
+      "quality_norm": 0.8,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 46.09
+      "score": 53.73,
+      "facts": [
+        {
+          "label": "受影响商户数量",
+          "value": "约 12",
+          "unit": "万户",
+          "as_of": "2026-10-17",
+          "note": "测算口径为年营收 500 万以下"
+        }
+      ],
+      "verifications": [
+        {
+          "claim": "网传该新规将追溯适用于已注册商户",
+          "status": "已辟谣",
+          "by": "当地市场监管部门",
+          "date": "2026-10-18",
+          "url": "https://example.com/rumor/2",
+          "note": "官方答复：不溯及既往"
+        }
+      ]
     },
     {
       "cluster_id": "E004",
+      "title": "官媒报道的重要公告",
+      "author": "某发布",
+      "url": "https://e.com/d1",
+      "platforms": [
+        "github"
+      ],
+      "sources": [
+        {
+          "platform": "github",
+          "url": "https://e.com/d1",
+          "metric": null
+        }
+      ],
+      "excerpt": "公告明确新注册主体需在 30 日内完成备案，逾期未办将暂停相关业务资质，过渡期设三个月。",
+      "published_at": "2026-10-15",
+      "dimensions": {
+        "主题域": "科技 / 产品",
+        "内容性质": "一手材料",
+        "信息确定性": "已证实",
+        "影响面": "行业",
+        "立场倾向": "中性",
+        "信源权威度": "官媒 / 机构发布",
+        "时效形态": "长尾"
+      },
+      "merged_from": [
+        "d1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.4643,
+      "heat_pct": 0.4286,
+      "quality_norm": 1.0,
+      "quality_flags": [],
+      "quality_blocked": false,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 47.3
+    },
+    {
+      "cluster_id": "E005",
       "title": "国产大模型开源权重引发讨论",
       "author": "某技术团队",
       "url": "https://e.com/e1",
@@ -198,48 +259,42 @@
       "duplicate_count": 1,
       "heat_mix": 0.3359,
       "heat_pct": 0.2857,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 33.62
-    },
-    {
-      "cluster_id": "E005",
-      "title": "官媒报道的重要公告",
-      "author": "某发布",
-      "url": "https://e.com/d1",
-      "platforms": [
-        "github"
-      ],
-      "sources": [
+      "score": 39.46,
+      "facts": [
         {
-          "platform": "github",
-          "url": "https://e.com/d1",
-          "metric": null
+          "label": "开源模型参数量",
+          "value": "72",
+          "unit": "B",
+          "as_of": "2026-10-18",
+          "note": "权重与推理代码同时放出"
         }
       ],
-      "excerpt": "公告全文。",
-      "published_at": "2026-10-15",
-      "dimensions": {
-        "主题域": "科技 / 产品",
-        "内容性质": "一手材料",
-        "信息确定性": "已证实",
-        "影响面": "行业",
-        "立场倾向": "中性",
-        "信源权威度": "官媒 / 机构发布",
-        "时效形态": "长尾"
-      },
-      "merged_from": [
-        "d1"
-      ],
-      "duplicate_count": 1,
-      "heat_mix": 0.4643,
-      "heat_pct": 0.4286,
-      "heat_unknown": false,
-      "platform_count": 1,
-      "score": 30.29
+      "verifications": [
+        {
+          "claim": "开源权重可商用",
+          "status": "有争议",
+          "by": "许可证条款解读",
+          "date": "2026-10-18",
+          "url": "https://example.com/license",
+          "note": "许可证第 3 条对商用规模有限制，社区解读不一"
+        },
+        {
+          "claim": "该模型性能超过同规模闭源模型",
+          "status": "待核实",
+          "by": "—",
+          "date": "2026-10-18",
+          "url": "",
+          "note": "仅厂商自测，尚无第三方复现"
+        }
+      ]
     },
     {
-      "cluster_id": "E007",
+      "cluster_id": "E006",
       "title": "小众开源项目 v2 发布",
       "author": "dev42",
       "url": "https://e.com/b1",
@@ -270,14 +325,75 @@
       "duplicate_count": 1,
       "heat_mix": 0.2037,
       "heat_pct": 0.1429,
+      "quality_norm": 0.8,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 22.28
+      "score": 35.77,
+      "facts": [
+        {
+          "label": "内存占用",
+          "value": "16",
+          "unit": "GB",
+          "as_of": "2026-10-19",
+          "note": "7B 量化后本地部署"
+        }
+      ]
+    },
+    {
+      "cluster_id": "E009",
+      "title": "关于某开源项目性能优化的探讨",
+      "author": "dev42",
+      "url": "https://e.com/b2",
+      "platforms": [
+        "juejin"
+      ],
+      "sources": [
+        {
+          "platform": "juejin",
+          "url": "https://e.com/b2",
+          "metric": 120.0
+        }
+      ],
+      "excerpt": "作者对三种调度策略做了基准对比，结论是贪心调度在长尾请求上延迟更低，但吞吐略逊于批处理。",
+      "published_at": "2026-10-11",
+      "dimensions": {
+        "主题域": "科技 / 产品",
+        "内容性质": "数据",
+        "信息确定性": "已证实",
+        "影响面": "行业",
+        "立场倾向": "中性",
+        "信源权威度": "自媒体 / 个人博主",
+        "时效形态": "长尾"
+      },
+      "merged_from": [
+        "b2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.0344,
+      "heat_pct": 0.0,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 22.02,
+      "facts": [
+        {
+          "label": "贪心调度长尾延迟降幅",
+          "value": "约 30",
+          "unit": "%",
+          "as_of": "2026-10-18",
+          "note": "作者自测，三种策略对比"
+        }
+      ],
+      "verifications": []
     }
   ],
   "appendix": [
     {
-      "cluster_id": "E006",
+      "cluster_id": "E007",
       "title": "小红书实测：开源模型本地部署避坑记录",
       "author": "用户B",
       "url": "https://e.com/g2",
@@ -291,7 +407,7 @@
           "metric": null
         }
       ],
-      "excerpt": "三条部署踩坑提醒。",
+      "excerpt": "实测 7B 模型在 16G 内存机器上的部署全过程：量化方案选择、显存占用峰值，以及三个常见报错的解决办法。",
       "published_at": "2026-10-20",
       "dimensions": {},
       "merged_from": [
@@ -300,9 +416,12 @@
       "duplicate_count": 1,
       "heat_mix": 0.25,
       "heat_pct": 0.0,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": true,
       "platform_count": 1,
-      "score": 22.5
+      "score": 31.9
     }
   ],
   "clusters": [
@@ -337,40 +456,15 @@
       "duplicate_count": 2,
       "heat_mix": 0.9643,
       "heat_pct": 0.9286,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 2,
-      "score": 80.36
+      "score": 74.75
     },
     {
       "cluster_id": "E002",
-      "title": "热搜第一的话题",
-      "author": "网友",
-      "url": "https://e.com/c1",
-      "platforms": [
-        "douyin"
-      ],
-      "sources": [
-        {
-          "platform": "douyin",
-          "url": "https://e.com/c1",
-          "metric": 1.0
-        }
-      ],
-      "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
-      "published_at": "2026-10-20",
-      "dimensions": {},
-      "merged_from": [
-        "c1"
-      ],
-      "duplicate_count": 1,
-      "heat_mix": 0.9643,
-      "heat_pct": 0.9286,
-      "heat_unknown": false,
-      "platform_count": 1,
-      "score": 58.22
-    },
-    {
-      "cluster_id": "E003",
       "title": "某新规对中小商户的影响测算",
       "author": "行业研究所",
       "url": "https://e.com/e2",
@@ -393,12 +487,79 @@
       "duplicate_count": 1,
       "heat_mix": 0.5987,
       "heat_pct": 0.5714,
+      "quality_norm": 0.8,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 46.09
+      "score": 53.73
+    },
+    {
+      "cluster_id": "E003",
+      "title": "热搜第一的话题",
+      "author": "网友",
+      "url": "https://e.com/c1",
+      "platforms": [
+        "douyin"
+      ],
+      "sources": [
+        {
+          "platform": "douyin",
+          "url": "https://e.com/c1",
+          "metric": 1.0
+        }
+      ],
+      "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
+      "published_at": "2026-10-20",
+      "dimensions": {},
+      "merged_from": [
+        "c1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.9643,
+      "heat_pct": 0.9286,
+      "quality_norm": 0.25,
+      "quality_flags": [
+        "title_bait"
+      ],
+      "quality_blocked": true,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 50.64
     },
     {
       "cluster_id": "E004",
+      "title": "官媒报道的重要公告",
+      "author": "某发布",
+      "url": "https://e.com/d1",
+      "platforms": [
+        "github"
+      ],
+      "sources": [
+        {
+          "platform": "github",
+          "url": "https://e.com/d1",
+          "metric": null
+        }
+      ],
+      "excerpt": "公告明确新注册主体需在 30 日内完成备案，逾期未办将暂停相关业务资质，过渡期设三个月。",
+      "published_at": "2026-10-15",
+      "dimensions": {},
+      "merged_from": [
+        "d1"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.4643,
+      "heat_pct": 0.4286,
+      "quality_norm": 1.0,
+      "quality_flags": [],
+      "quality_blocked": false,
+      "heat_unknown": false,
+      "platform_count": 1,
+      "score": 47.3
+    },
+    {
+      "cluster_id": "E005",
       "title": "国产大模型开源权重引发讨论",
       "author": "某技术团队",
       "url": "https://e.com/e1",
@@ -421,68 +582,15 @@
       "duplicate_count": 1,
       "heat_mix": 0.3359,
       "heat_pct": 0.2857,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 33.62
-    },
-    {
-      "cluster_id": "E005",
-      "title": "官媒报道的重要公告",
-      "author": "某发布",
-      "url": "https://e.com/d1",
-      "platforms": [
-        "github"
-      ],
-      "sources": [
-        {
-          "platform": "github",
-          "url": "https://e.com/d1",
-          "metric": null
-        }
-      ],
-      "excerpt": "公告全文。",
-      "published_at": "2026-10-15",
-      "dimensions": {},
-      "merged_from": [
-        "d1"
-      ],
-      "duplicate_count": 1,
-      "heat_mix": 0.4643,
-      "heat_pct": 0.4286,
-      "heat_unknown": false,
-      "platform_count": 1,
-      "score": 30.29
+      "score": 39.46
     },
     {
       "cluster_id": "E006",
-      "title": "小红书实测：开源模型本地部署避坑记录",
-      "author": "用户B",
-      "url": "https://e.com/g2",
-      "platforms": [
-        "xiaohongshu"
-      ],
-      "sources": [
-        {
-          "platform": "xiaohongshu",
-          "url": "https://e.com/g2",
-          "metric": null
-        }
-      ],
-      "excerpt": "三条部署踩坑提醒。",
-      "published_at": "2026-10-20",
-      "dimensions": {},
-      "merged_from": [
-        "g2"
-      ],
-      "duplicate_count": 1,
-      "heat_mix": 0.25,
-      "heat_pct": 0.0,
-      "heat_unknown": true,
-      "platform_count": 1,
-      "score": 22.5
-    },
-    {
-      "cluster_id": "E007",
       "title": "小众开源项目 v2 发布",
       "author": "dev42",
       "url": "https://e.com/b1",
@@ -505,9 +613,43 @@
       "duplicate_count": 1,
       "heat_mix": 0.2037,
       "heat_pct": 0.1429,
+      "quality_norm": 0.8,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 22.28
+      "score": 35.77
+    },
+    {
+      "cluster_id": "E007",
+      "title": "小红书实测：开源模型本地部署避坑记录",
+      "author": "用户B",
+      "url": "https://e.com/g2",
+      "platforms": [
+        "xiaohongshu"
+      ],
+      "sources": [
+        {
+          "platform": "xiaohongshu",
+          "url": "https://e.com/g2",
+          "metric": null
+        }
+      ],
+      "excerpt": "实测 7B 模型在 16G 内存机器上的部署全过程：量化方案选择、显存占用峰值，以及三个常见报错的解决办法。",
+      "published_at": "2026-10-20",
+      "dimensions": {},
+      "merged_from": [
+        "g2"
+      ],
+      "duplicate_count": 1,
+      "heat_mix": 0.25,
+      "heat_pct": 0.0,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
+      "heat_unknown": true,
+      "platform_count": 1,
+      "score": 31.9
     },
     {
       "cluster_id": "E008",
@@ -533,9 +675,12 @@
       "duplicate_count": 1,
       "heat_mix": 0.25,
       "heat_pct": 0.0,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": true,
       "platform_count": 1,
-      "score": 21.83
+      "score": 31.36
     },
     {
       "cluster_id": "E009",
@@ -552,7 +697,7 @@
           "metric": 120.0
         }
       ],
-      "excerpt": "对比了三种调度策略。",
+      "excerpt": "作者对三种调度策略做了基准对比，结论是贪心调度在长尾请求上延迟更低，但吞吐略逊于批处理。",
       "published_at": "2026-10-11",
       "dimensions": {},
       "merged_from": [
@@ -561,9 +706,69 @@
       "duplicate_count": 1,
       "heat_mix": 0.0344,
       "heat_pct": 0.0,
+      "quality_norm": 0.6,
+      "quality_flags": [],
+      "quality_blocked": false,
       "heat_unknown": false,
       "platform_count": 1,
-      "score": 10.12
+      "score": 22.02
     }
-  ]
+  ],
+  "digest": [
+    "多地住房限购细则出现松动，核心城市外围区域先行，官方口径为「因城施策」。",
+    "多份一手材料显示新能源车购置税减免政策将延续，但具体档位尚未官宣。",
+    "一款主流 IDE 的 AI 插件定价引发开发者争议，焦点在按量计费不透明。"
+  ],
+  "highlights": [
+    {
+      "cluster_id": "E001",
+      "title": "某地发布新版住房限购细则",
+      "why": "一手政策材料，直接关系购房资格，建议先读原文再看待表态。"
+    },
+    {
+      "cluster_id": "E003",
+      "title": "新能源车购置税政策延续讨论",
+      "why": "多家权威媒体交叉引用，但官方文件未出，适合作为跟踪线索。"
+    }
+  ],
+  "viewpoints": {
+    "controversy": "开源模型的商用边界：许可证是否允许大规模商业部署，各方解读不一致",
+    "groups": [
+      {
+        "stance": "正面",
+        "summary": "认为开源权重降低了中小团队的部署门槛，利好生态。",
+        "points": [
+          "16GB 内存即可本地跑 7B 量化模型",
+          "权重与推理代码同时放出，复现成本低"
+        ],
+        "refs": [
+          "E005",
+          "E006"
+        ]
+      },
+      {
+        "stance": "质疑",
+        "summary": "质疑许可证条款与性能宣称，认为实际可用性被高估。",
+        "points": [
+          "许可证第 3 条对商用规模设限，社区解读不一",
+          "性能宣称仅厂商自测，缺第三方复现"
+        ],
+        "refs": [
+          "E005"
+        ]
+      },
+      {
+        "stance": "中性",
+        "summary": "政策类条目以官方口径转述为主，未形成明显立场分化。",
+        "points": [
+          "限购细则以住建局公告为准",
+          "网传「全面取消限购」已被辟谣"
+        ],
+        "refs": [
+          "E001",
+          "E002"
+        ]
+      }
+    ]
+  }
 }

@@ -34,10 +34,25 @@ DEFAULT_CFG = Path(__file__).resolve().parent.parent / "references" / "platforms
 DIMENSIONS = ["主题域", "内容性质", "信息确定性", "影响面", "立场倾向", "信源权威度", "时效形态"]
 # 前六项必填；时效形态可留空
 REQUIRED_DIMS = DIMENSIONS[:6]
+# 单条摘要上限（字）与「本期要点」最少条数：脚本不代写，只限长与计数
+EXCERPT_LIMIT = 200
+DIGEST_MIN_ITEMS = 3
+# 套话词与权重：命中越多、密度越高，越可能是没读正文、拿模板话凑字数
+FLUFF_WORDS = {
+    "据悉": 2, "据了解": 2, "相关消息": 1, "引发关注": 3, "引发热议": 3, "引发讨论": 2,
+    "广泛关注": 3, "备受关注": 3, "持续发酵": 2, "热度不减": 2, "值得我们": 2,
+    "一起来看看吧": 3, "详情请": 3, "点击查看": 3, "点击链接": 3, "更多信息": 2,
+    "更多内容": 2, "敬请关注": 3, "拭目以待": 2, "后续如何": 2, "具体情况": 1,
+    "众说纷纭": 2, "看法不一": 2, "意见不一": 2, "有待观察": 2, "发人深省": 3,
+    "引人深思": 3, "各方反应": 1, "纷纷表示": 2, "议论纷纷": 2, "褒贬不一": 2,
+}
 STANCE_VALUES = ["正面", "中性", "负面", "质疑"]
 # 信源权威度：回答「谁在说」，与「信息确定性（真假）」是两回事
 AUTHORITY_VALUES = ["官媒 / 机构发布", "权威媒体 / 专业机构", "认证账号", "自媒体 / 个人博主", "UGC / 匿名讨论", "无法判定"]
 METRIC_KEYS = ["metric", "view", "views", "play", "plays", "read", "reads", "heat", "rank"]
+# 关键数据表行数上限、核查结论取值（顺序即排序优先级）
+FACT_LIMIT = 40
+VERIFY_STATUS = ["已证实", "已辟谣", "有争议", "待核实"]
 
 
 # ---------------------------------------------------------------- 基础工具
@@ -296,6 +311,8 @@ def platform_labels():
         cfg = load_cfg()
         rev = {}
         for alias, key in (cfg.get("aliases") or {}).items():
+            if alias.startswith("_"):
+                continue          # 说明键不是别名
             if re.search(r"[\u4e00-\u9fff]", alias) and key not in rev:
                 rev[key] = alias
         _LABELS = rev
@@ -349,15 +366,40 @@ def engagement_norm(entry):
     return clamp(math.log10(1.0 + raw) / 5.0)
 
 
-DEFAULT_WEIGHTS = {"heat": 0.50, "cross": 0.22, "engagement": 0.18, "freshness": 0.10}
+DEFAULT_WEIGHTS = {"heat": 0.38, "cross": 0.18, "engagement": 0.12,
+                   "freshness": 0.08, "credibility": 0.24}
 
 
-def score_of(heat_mix, cross, eng, fresh, cfg):
+def quality_norm(entry, cfg):
+    """来源质量归一：0-5 分压到 0~1，命中质量旗标再扣分。
+
+    缺省按中性值处理，不填不惩罚——但 qa 会提示覆盖率，避免整轮悄悄没做来源核验。
+    返回 (归一值, 命中并已登记的旗标列表)。
+    """
+    c = cfg.get("credibility") or {}
+    maxs = float(c.get("max_score", 5)) or 5.0
+    raw = entry.get("source_quality")
+    if raw is None or raw == "":
+        norm = clamp(float(c.get("default_norm", 0.5)))
+    else:
+        try:
+            norm = clamp(float(raw) / maxs)
+        except (TypeError, ValueError):
+            norm = clamp(float(c.get("default_norm", 0.5)))
+    known = c.get("flags") or {}
+    flags = [f for f in (entry.get("quality_flags") or []) if f in known]
+    blocking = [f for f in flags if f in (c.get("blocking_flags") or [])]
+    return clamp(norm - float(c.get("flag_penalty", 0.15)) * len(flags)), flags, blocking
+
+
+def score_of(heat_mix, cross, eng, fresh, cfg, credibility=None):
     w = dict(DEFAULT_WEIGHTS)
     w.update(cfg.get("score_weights") or {})
+    cred = 0.5 if credibility is None else clamp(credibility)
     total = sum(max(v, 0.0) for v in w.values()) or 1.0
     return round(100.0 * (w["heat"] * heat_mix + w["cross"] * cross
-                          + w["engagement"] * eng + w["freshness"] * fresh) / total, 2)
+                          + w["engagement"] * eng + w["freshness"] * fresh
+                          + w.get("credibility", 0.0) * cred) / total, 2)
 
 
 def evaluate(entry, cfg, mode="absolute", ref=None):
@@ -409,11 +451,16 @@ def evaluate(entry, cfg, mode="absolute", ref=None):
     eng = engagement_norm(entry)
     fresh = freshness_norm(entry.get("published_at"), ref, cfg=cfg)
 
+    cred, qflags, qblock = quality_norm(entry, cfg)
+
     out["heat_norm"] = round(hn, 4)
     out["cross_norm"] = round(cross, 4)
     out["engagement_norm"] = round(eng, 4)
     out["fresh_norm"] = round(fresh, 4)
-    out["score"] = score_of(hn, cross, eng, fresh, cfg)
+    out["quality_norm"] = round(cred, 4)
+    out["quality_flags"] = qflags
+    out["quality_blocked"] = qblock
+    out["score"] = score_of(hn, cross, eng, fresh, cfg, cred)
     out["verdict"] = verdict
     out["reason"] = reason
     out["platform_count"] = n_pl
@@ -556,6 +603,18 @@ def dedup(scored, cfg):
             sources.append({"platform": pf, "url": e.get("url"), "metric": e.get("metric_value")})
         n_pl = len(platforms)
         mix = rep.get("heat_mix", rep.get("heat_norm", 0.0))
+        # 簇的质量分取成员最高值：同一事件如果有官媒/机构也报了，这件事本身
+        # 就比「只有营销号在说」可信，不该被热度最高的那条营销号拖下水。
+        # 旗标仍取代表条目的——它是用户最先看到的那条，需要如实提示风险；
+        # 但簇内存在高可信成员时清空，避免把「有权威来源佐证」误标成低质。
+        cred = max([m.get("quality_norm", 0.5) for m in members] or [0.5])
+        flags = list(rep.get("quality_flags") or [])
+        if any(m.get("quality_norm", 0) >= 0.8 for m in members):
+            flags = []
+        # 簇内只要有一条没命中硬旗标，就不能整簇拦下——同一事件有正经报道时，
+        # 那篇标题党只是转载/蹭流量，事件本身仍值得进正文。
+        blocked = (all(m.get("quality_blocked") for m in members)
+                   if members else False)
         cl = {
             "cluster_id": "",
             "title": rep.get("title"),
@@ -570,6 +629,9 @@ def dedup(scored, cfg):
             "duplicate_count": len(members),
             "heat_mix": round(mix, 4),
             "heat_pct": rep.get("heat_pct"),
+            "quality_norm": round(cred, 4),
+            "quality_flags": flags,
+            "quality_blocked": blocked,
             # 簇里所有成员的指标都拿不到时才算热度未知；只要有一条有可核验且参与排名的热度，
             # 这个簇就是"已知"，防止被低条目的集合并拖下水
             "heat_unknown": all((e.get("verdict") in ("unverified", "pass_unknown"))
@@ -577,7 +639,7 @@ def dedup(scored, cfg):
             "platform_count": n_pl,
             "score": min(100.0, score_of(mix, clamp((n_pl - 1) / 3.0),
                                          rep.get("engagement_norm", 0.0),
-                                         rep.get("fresh_norm", 0.5), cfg)),
+                                         rep.get("fresh_norm", 0.5), cfg, cred)),
         }
         clusters.append(cl)
 
@@ -661,7 +723,8 @@ def rescore_pool(scored, cfg):
     """本档内热度再叠加「同池分位」，让不同门槛档位的分数可比。
 
     heat_mix = 0.5 * 本档内归一 + 0.5 * 同池分位
-    score = 100 * Σ(w * 分量) / Σw，权重取自配置 score_weights（heat / cross / engagement / freshness），
+    score = 100 * Σ(w * 分量) / Σw，权重取自配置 score_weights
+            （heat / cross / engagement / freshness / credibility），
             缺项时回落到 DEFAULT_WEIGHTS。不要在注释里写死数值，改配置会导致注释过期。
     分位只对放行条目计算，未放行条目不参与分位池。
     """
@@ -672,7 +735,8 @@ def rescore_pool(scored, cfg):
         s["heat_pct"] = round(pct, 4)
         s["heat_mix"] = round(0.5 * s.get("heat_norm", 0.0) + 0.5 * pct, 4)
         s["score"] = score_of(s["heat_mix"], s.get("cross_norm", 0.0),
-                              s.get("engagement_norm", 0.0), s.get("fresh_norm", 0.5), cfg)
+                              s.get("engagement_norm", 0.0), s.get("fresh_norm", 0.5), cfg,
+                              s.get("quality_norm", 0.5))
     return scored
 
 
@@ -700,8 +764,12 @@ def run_pipeline(entries, n, cfg, baseline=None):
     rescore_pool(scored, cfg)
 
     clusters = dedup(scored, cfg)
-    known = [c for c in clusters if not c.get("heat_unknown")]
-    unknown = [c for c in clusters if c.get("heat_unknown")]
+    # 命中硬旗标（标题党 / AI 批量水文 / 营销号）的簇不进正文：
+    # 这类内容靠的就是热度，扣分压不住，只能拦在门外。
+    blocked = [c for c in clusters if c.get("quality_blocked")]
+    kept = [c for c in clusters if not c.get("quality_blocked")]
+    known = [c for c in kept if not c.get("heat_unknown")]
+    unknown = [c for c in kept if c.get("heat_unknown")]
     selected = known[:n]
     # 热度未知条目按固定配额进附录，不用「正文凑不满才补位」的老逻辑：
     # 补位会让正文满额时把公众号/小红书这类拿不到阅读量的条目整体丢掉，
@@ -728,8 +796,10 @@ def run_pipeline(entries, n, cfg, baseline=None):
     stats["unknown_events"] = len(unknown)
     stats["appendix"] = len(appendix)
     stats["appendix_limit"] = limit
+    stats["quality_blocked"] = len(blocked)
     return {"probe": pr, "scored": scored, "clusters": clusters,
-            "selected": selected, "appendix": appendix, "stats": stats, "diff": diff}
+            "selected": selected, "appendix": appendix, "stats": stats, "diff": diff,
+            "quality_blocked": blocked}
 
 
 # ---------------------------------------------------------------- 报告
@@ -762,14 +832,218 @@ def md_url(u):
     return raw.replace(")", "%29").replace(" ", "%20")
 
 
+def _clean_line(v):
+    return " ".join(str(v if v is not None else "").split())
+
+
+def md_cell(v):
+    """表格单元格：竖线必须转义，否则会把表格拆成多列。"""
+    return md_safe(_clean_line(v)).replace("|", "\\|") or "—"
+
+
+def _dedup_key(*parts):
+    return "|".join(_clean_line(p).lower() for p in parts)
+
+
+def weight_text(cfg):
+    """按配置生成权重说明，别在文案里写死数字——改配置会导致注释过期。"""
+    w = cfg.get("score_weights") or {}
+    names = {"heat": "本档内归一（含同池分位）", "cross": "跨平台分布",
+             "engagement": "互动量", "freshness": "时间新鲜度", "credibility": "来源质量"}
+    total = sum(max(v, 0.0) for v in w.values()) or 1.0
+    parts = ["%s %d%%" % (names.get(k, k), round(100.0 * v / total))
+             for k, v in w.items() if v > 0]
+    return "热度分 = " + " + ".join(parts) + "。"
+
+
+def quality_text(entry, cfg):
+    """来源质量的展示文案：分数 + 命中旗标的中文说明（与导出文档同口径）。"""
+    parts = []
+    q = entry.get("quality_norm")
+    if isinstance(q, (int, float)):
+        maxs = float((cfg.get("credibility") or {}).get("max_score", 5)) or 5.0
+        parts.append("来源质量 %.0f/%.0f" % (q * maxs, maxs))
+    known = (cfg.get("credibility") or {}).get("flags") or {}
+    labels = [known.get(f, f).split("：")[0] for f in (entry.get("quality_flags") or [])]
+    if labels:
+        parts.append("⚠ " + "、".join(labels))
+    return " ｜ ".join(parts)
+
+
+def collect_facts(items, limit=FACT_LIMIT):
+    """聚合各条目的结构化数据点：同一数据只留一行，按更新时间倒序。
+
+    与 export_doc.collect_facts 保持同一口径，md 与 docx/pdf 的表格才一致。
+    """
+    seen, rows = set(), []
+    for e in items:
+        labs = platform_labels()
+        src = "、".join(labs.get(p, p) for p in (e.get("platforms") or [])) \
+            or _clean_line(e.get("author")) or "未标注"
+        for f in (e.get("facts") or []):
+            if not isinstance(f, dict):
+                continue
+            label, value = _clean_line(f.get("label")), _clean_line(f.get("value"))
+            if not label or not value:
+                continue
+            unit = _clean_line(f.get("unit"))
+            shown = value + (unit if unit and not value.endswith(unit) else "")
+            k = _dedup_key(label, shown)
+            if k in seen:
+                continue
+            seen.add(k)
+            rows.append({"label": label, "value": shown,
+                         "as_of": _clean_line(f.get("as_of")) or "—",
+                         "source": _clean_line(f.get("source")) or src,
+                         "note": _clean_line(f.get("note")),
+                         "_sort": _clean_line(f.get("as_of"))})
+    rows.sort(key=lambda r: r["_sort"], reverse=True)
+    return rows[:limit]
+
+
+def collect_verifications(items):
+    """汇总核查记录，按结论类型排序（已证实 → 已辟谣 → 有争议 → 待核实）。"""
+    seen, rows = set(), []
+    for e in items:
+        for v in (e.get("verifications") or []):
+            if not isinstance(v, dict):
+                continue
+            claim, status = _clean_line(v.get("claim")), _clean_line(v.get("status"))
+            if not claim or not status:
+                continue
+            k = _dedup_key(claim, status)
+            if k in seen:
+                continue
+            seen.add(k)
+            rows.append({"claim": claim, "status": status,
+                         "by": _clean_line(v.get("by")) or "—",
+                         "date": _clean_line(v.get("date")) or "—",
+                         "url": md_url(v.get("url")) if v.get("url") else "",
+                         "note": _clean_line(v.get("note"))})
+    order = {s: i for i, s in enumerate(VERIFY_STATUS)}
+    rows.sort(key=lambda r: (order.get(r["status"], 99), r["date"]))
+    return rows
+
+
+def viewpoint_groups(payload):
+    """观点分布规范化，与 export_doc 同口径。"""
+    vp = payload.get("viewpoints") or {}
+    if not isinstance(vp, dict):
+        return "", []
+    controversy = _clean_line(vp.get("controversy"))
+    groups = []
+    for g in (vp.get("groups") or []):
+        if not isinstance(g, dict):
+            continue
+        stance = _clean_line(g.get("stance"))
+        summary = _clean_line(g.get("summary"))
+        points = [_clean_line(p) for p in (g.get("points") or []) if _clean_line(p)]
+        refs = [_clean_line(r) for r in (g.get("refs") or []) if _clean_line(r)]
+        if stance or summary or points:
+            groups.append({"stance": stance, "summary": summary,
+                           "points": points, "refs": refs})
+    return controversy, groups
+
+
+def stance_summary_md(items):
+    counts = {}
+    for e in items:
+        v = (e.get("dimensions") or {}).get("立场倾向")
+        if v:
+            counts[v] = counts.get(v, 0) + 1
+    if not counts:
+        return ""
+    n = sum(counts.values())
+    order = [v for v in STANCE_VALUES if v in counts] + [v for v in counts if v not in STANCE_VALUES]
+    return " / ".join("%s %d 条（%.0f%%）" % (v, counts[v], 100.0 * counts[v] / n) for v in order)
+
+
 def render_report(payload, topic=""):
+    cfg = load_cfg()
     sel = payload["selected"]
     st = payload["stats"]
     pr = payload["probe"]
     L = []
     L.append("# 话题棱镜 · %s" % md_safe(topic or "信息汇总"))
     L.append("")
-    L.append("## 一、检索与筛选口径")
+    # 本期要点：执行方依据各条摘要提炼，脚本只渲染不代写
+    digest = payload.get("digest") or []
+    if isinstance(digest, str):
+        digest = [digest] if digest.strip() else []
+    digest = [str(d).strip() for d in digest if str(d).strip()]
+    L.append("## 本期要点")
+    L.append("")
+    if digest:
+        for i, d in enumerate(digest, 1):
+            L.append("%d. %s" % (i, md_safe(d)))
+    else:
+        L.append("> 本期要点未填写：执行方应依据各条摘要提炼 %d 条以上最重要信息后再交付。" % DIGEST_MIN_ITEMS)
+    L.append("")
+    # 一、关键数据：把各条的 facts 聚成一张表
+    facts = collect_facts(sel + (payload.get("appendix") or []))
+    L.append("## 一、关键数据")
+    L.append("")
+    if facts:
+        L.append("> 数据点由执行方抓正文时提取，同一数据只保留一行，按更新时间倒序。核对时以信源原文为准。")
+        L.append("")
+        L.append("| 数据项 | 数值 | 截至 | 来源 | 说明 |")
+        L.append("|---|---|---|---|---|")
+        for f in facts:
+            L.append("| %s | %s | %s | %s | %s |" % (
+                md_cell(f["label"]), md_cell(f["value"]), md_cell(f["as_of"]),
+                md_cell(f["source"]), md_cell(f["note"] or "—")))
+    else:
+        L.append("> 本轮未提取到结构化数据点。若话题涉及价格、利率、指标、日期等，"
+                 "执行方应在抓正文时写进各条的 `facts` 字段。")
+    L.append("")
+
+    # 二、观点分布
+    controversy, vgroups = viewpoint_groups(payload)
+    L.append("## 二、观点分布")
+    L.append("")
+    if controversy:
+        L.append("> 争议焦点：%s" % md_safe(controversy))
+        L.append("")
+    if vgroups:
+        for g in vgroups:
+            head = md_safe(g["stance"] or "未标注立场")
+            if g["refs"]:
+                head += "（%s）" % md_safe("、".join(g["refs"]))
+            L.append("### %s" % head)
+            L.append("")
+            if g["summary"]:
+                L.append(md_safe(g["summary"]))
+                L.append("")
+            for p in g["points"]:
+                L.append("- %s" % md_safe(p))
+            L.append("")
+    else:
+        L.append("> 本轮未整理观点分布。执行方应在交付前把各方立场、核心论点和对应条目"
+                 "写进 `viewpoints` 字段。")
+        L.append("")
+    ss = stance_summary_md(sel)
+    if ss:
+        L.append("条目计数（按「立场倾向」维度）：%s" % ss)
+        L.append("")
+
+    # 三、核查情况
+    vers = collect_verifications(sel + (payload.get("appendix") or []))
+    L.append("## 三、核查情况")
+    L.append("")
+    if vers:
+        L.append("> 把「已证实 / 已辟谣 / 有争议 / 待核实」摊开写，方便判断哪些结论可直接引用。")
+        L.append("")
+        L.append("| 待核事实 | 结论 | 核查方 | 时间 | 依据 |")
+        L.append("|---|---|---|---|---|")
+        for v in vers:
+            L.append("| %s | %s | %s | %s | %s |" % (
+                md_cell(v["claim"]), md_cell(v["status"]), md_cell(v["by"]),
+                md_cell(v["date"]), md_cell(v["url"] or v["note"] or "—")))
+    else:
+        L.append("> 本轮未记录核查结论。争议类话题执行方应把核查结果写进各条的 `verifications` 字段；"
+                 "没有核查不等于没有争议，别用「已证实」标签代替核查。")
+    L.append("")
+    L.append("## 四、检索与筛选口径")
     L.append("")
     L.append("- 候选池：%d 条（原始检索结果）" % st["candidates"])
     if st.get("dropped"):
@@ -778,6 +1052,9 @@ def render_report(payload, topic=""):
     L.append("- 事件去重后：%d 个唯一事件" % st["clusters"])
     L.append("- 最终纳入：%d 条（目标 %d 条）" % (st["selected"], st["requested"]))
     L.append("- 判定模式：%s —— %s" % (pr["mode"], pr["explain"]))
+    if st.get("quality_blocked"):
+        L.append("- 来源质量拦截：%d 个事件因命中硬旗标（标题党 / AI 水文 / 营销号）未进正文，"
+                 "已列进「未纳入条目与原因」。" % st["quality_blocked"])
     if st.get("appendix"):
         L.append("- 结构：正文 %d 条（有热度依据、参与排名）+ 附录 %d 条（热度未知、不参与排名，"
                  "按固定配额纳入，上限 %d 条）—— 合计 %d 条。正文缺口与附录另计，附录不占 %d 条的名额。"
@@ -798,7 +1075,7 @@ def render_report(payload, topic=""):
     L.append("")
 
     # 分类矩阵
-    L.append("## 二、分类矩阵")
+    L.append("## 五、分类矩阵")
     L.append("")
     any_dim = any(e.get("dimensions") for e in sel)
     if not any_dim:
@@ -843,7 +1120,7 @@ def render_report(payload, topic=""):
             L.append("")
 
     # 时间线：按发布日倒序，越新越靠前
-    L.append("## 三、时间线（按日期倒序，越新越靠前）")
+    L.append("## 六、时间线（按日期倒序，越新越靠前）")
     L.append("")
     tl = timeline_groups(list(sel) + list(payload.get("appendix") or []))
     if not tl:
@@ -875,7 +1152,7 @@ def render_report(payload, topic=""):
             L.append("")
 
     # 条目
-    L.append("## 四、条目明细（按热度降序）")
+    L.append("## 七、条目明细（按热度降序）")
     L.append("")
     groups = {}
     for e in sel:
@@ -898,47 +1175,28 @@ def render_report(payload, topic=""):
                 meta.append("作者：" + md_safe(e["author"]))
             if e.get("duplicate_count", 1) > 1:
                 meta.append("合并 %d 条重复" % e["duplicate_count"])
+            qt = quality_text(e, cfg) if cfg else ""
+            if qt:
+                meta.append(qt)
+            # 顺序固定：标题 → 摘要 → 元信息 → 分类 → 信源链接（与导出文档一致）
+            ex = str(e.get("excerpt") or "").strip()
+            if ex:
+                ex = ex if len(ex) <= EXCERPT_LIMIT else ex[:EXCERPT_LIMIT].rstrip() + "…"
+                L.append("- 摘要：%s" % md_safe(ex))
+            else:
+                L.append("- 摘要：> 本条未提供摘要（excerpt 为空）")
             L.append("- " + " ｜ ".join(meta))
             if dims:
                 L.append("- 分类：" + "；".join(
                     "%s=%s" % (d, md_safe(dims.get(d, "未标注"))) for d in DIMENSIONS if dims.get(d)))
-            if e.get("excerpt"):
-                L.append("- 摘要：%s" % md_safe(e["excerpt"]))
-            if e.get("url"):
-                L.append("- 源：%s" % md_url(e["url"]))
-            L.append("")
-
-    app = payload.get("appendix") or []
-    if app:
-        L.append("## 附、热度未知条目（无公开量化指标，不参与排名）")
-        L.append("")
-        L.append("> 以下条目平台侧未公开阅读/播放/互动数据，无法给出热度分。它们的价值在内容本身（评测、争议、一手口径），"
-                 "采纳前请自行判断信源。")
-        L.append("")
-        for e in app:
-            dims = e.get("dimensions") or {}
-            L.append("**%s %s%s**" % (e["cluster_id"], md_safe(e.get("title")),
-                                      "  「新」" if e.get("is_new") else ""))
-            meta = ["热度未知"]
-            if e.get("platforms"):
-                labs = platform_labels()
-                meta.append("平台：" + "、".join(labs.get(p, p) for p in e["platforms"]))
-            if e.get("author"):
-                meta.append("作者：" + md_safe(e["author"]))
-            L.append("- " + " ｜ ".join(meta))
-            if dims:
-                L.append("- 分类：" + "；".join(
-                    "%s=%s" % (d, md_safe(dims.get(d, "未标注"))) for d in DIMENSIONS if dims.get(d)))
-            if e.get("excerpt"):
-                L.append("- 摘要：%s" % md_safe(e["excerpt"]))
             if e.get("url"):
                 L.append("- 源：%s" % md_url(e["url"]))
             L.append("")
 
     diff = payload.get("diff")
+    L.append("## 八、与上次对比")
+    L.append("")
     if diff:
-        L.append("## 五、与上次对比")
-        L.append("")
         L.append("- 基线：%s（上次共 %d 条）" % (md_safe(diff.get("baseline_at") or "上次结果"),
                                             diff.get("baseline_total", 0)))
         L.append("- 本次：新增 %d 条 / 消失 %d 条 / 延续 %d 条"
@@ -964,24 +1222,127 @@ def render_report(payload, topic=""):
             L.append("> 与上次相比没有增删，说明这一轮检索没捞到新事件，或话题已进入稳定期。")
             L.append("")
 
-    L.append("## 六、方法学与限制")
+    else:
+        L.append("> 本轮未指定基线，没有新增 / 消失 / 延续对比。需要做增量时，用 --baseline 传入上一轮的 selected.json 重新渲染。")
+        L.append("")
+    L.append("## 九、方法学与限制")
     L.append("")
     L.append("- 热度门槛：绝对地板 100；大流量平台 1000、中等平台 300、垂直/小众源 100。")
     L.append("- 低热度选题（达标占比 <50%）自动切换为题域相对线：渠道门槛下调至绝对地板，按热度分排序取前 N，")
     L.append("  不再做分位截断，避免小众选题被砍到不足目标条数。")
     L.append("- 排序是「热度分」而非真实全网浏览量排名：各平台指标口径不同（阅读量/播放量/热度值/榜单名次），")
     L.append("  跨平台仅做归一化近似，不可当绝对值横向对比。")
-    L.append("- 热度分 = 55% 本档内归一 + 25% 跨平台分布 + 20% 互动量；本档内归一后再叠一层同池分位"
-             "（1.0 = 本话题候选池最热），因此分数首先表示「在本话题里的相对位置」，不是绝对人气。")
+    L.append("- " + weight_text(cfg))
     L.append("- 达标门槛附近不做归零处理：刚过门槛的条目仍有底噪分值，不会被无数据的替代判据条目反超。")
     L.append("- 同作者跨平台同发、或标题/正文高度重合的内容已合并为一个事件，合并后跨平台数量计入热度加分。")
     L.append("- 「信息确定性」维度未达已证实的事件，采纳前需自行复核。")
     L.append("- 报告中的源链接指向第三方站点，内容与安全性由该站点负责；本工具只转述摘要，不代理访问。")
     L.append("- 标题、作者、摘要等外部文本渲染时已做转义，非 http(s) 协议链接会被隐去。")
+
+    # 七、值得优先关注的几条：执行方填写，只渲染有理由的条目
+    hl = [h for h in (payload.get("highlights") or [])
+          if isinstance(h, dict) and (str(h.get("title") or h.get("cluster_id") or "").strip())]
+    if hl:
+        L.append("")
+        L.append("## 十、值得优先关注的几条")
+        L.append("")
+        for h in hl[:8]:
+            head = " ".join(x for x in [str(h.get("cluster_id") or "").strip(),
+                                        md_safe(h.get("title"))] if x)
+            L.append("- **%s**" % head)
+            why = str(h.get("why") or "").strip()
+            if why:
+                L.append("  - 理由：%s" % md_safe(why))
+
+    # 附录统一放在正文之后，与导出的 docx/pdf 保持同一套命名与顺序
+    app = payload.get("appendix") or []
+    rejected = payload.get("rejected") or []
+
+    # 附录 A、信源清单
+    L.append("")
+    L.append("## 附录 A、信源清单（全部链接）")
+    L.append("")
+    L.append("> 按条目列出每个信源的平台、热度数值与原始地址；同一事件在多平台出现时逐条列出，便于逐一定位核对。")
+    L.append("")
+    labs = platform_labels()
+    idx = 0
+    for e in sel + app:
+        sources = e.get("sources") or ([{"platform": (e.get("platforms") or [""])[0],
+                                         "url": e.get("url"), "metric": None}])
+        L.append("**%s %s**" % (e.get("cluster_id", ""), md_safe(e.get("title"))))
+        L.append("")
+        for s in sources:
+            idx += 1
+            plat = md_safe(labs.get(s.get("platform"), s.get("platform")) or "未标注平台")
+            metric = s.get("metric")
+            line = "[%d] %s" % (idx, plat)
+            if metric not in (None, ""):
+                line += " ｜ 数值 %s" % ("%g" % metric if isinstance(metric, (int, float)) else metric)
+            if s.get("url"):
+                L.append("- %s ｜ %s" % (line, md_url(s["url"])))
+            else:
+                L.append("- %s ｜ 链接缺失或非 http(s)" % line)
+        L.append("")
+
+    # 附录 B、热度未知条目
+    if app:
+        L.append("## 附录 B、热度未知条目（无公开量化指标，不参与排名）")
+        L.append("")
+        L.append("> 以下条目平台侧未公开阅读/播放/互动数据，无法给出热度分。它们的价值在内容本身（评测、争议、一手口径），"
+                 "采纳前请自行判断信源。")
+        L.append("")
+        for e in app:
+            dims = e.get("dimensions") or {}
+            L.append("**%s %s%s**" % (e["cluster_id"], md_safe(e.get("title")),
+                                      "  「新」" if e.get("is_new") else ""))
+            meta = ["热度未知"]
+            if e.get("platforms"):
+                meta.append("平台：" + "、".join(labs.get(p, p) for p in e["platforms"]))
+            if e.get("author"):
+                meta.append("作者：" + md_safe(e["author"]))
+            L.append("- " + " ｜ ".join(meta))
+            if dims:
+                L.append("- 分类：" + "；".join(
+                    "%s=%s" % (d, md_safe(dims.get(d, "未标注"))) for d in DIMENSIONS if dims.get(d)))
+            if e.get("excerpt"):
+                L.append("- 摘要：%s" % md_safe(e["excerpt"]))
+            if e.get("url"):
+                L.append("- 源：%s" % md_url(e["url"]))
+            L.append("")
+
+    # 附录 C、未纳入条目与原因
+    if rejected:
+        L.append("## 附录 C、未纳入条目与原因")
+        L.append("")
+        L.append("> 把落选理由摊开写（低于地板、无替代判据、来源质量拦截），方便判断筛选口径是否过严。")
+        L.append("")
+        for r in rejected[:80]:
+            L.append("- %s ｜ %s ｜ %s" % (
+                md_safe(r.get("platform") or "—"), md_safe(r.get("title")), md_safe(r.get("reason") or "—")))
+        if len(rejected) > 80:
+            L.append("")
+            L.append("> 另有 %d 条未列出。" % (len(rejected) - 80))
+        L.append("")
     return "\n".join(L)
 
 
 # ---------------------------------------------------------------- 质检
+def fluff_stats(text):
+    """统计摘要里的套话命中与密度。
+
+    为什么用密度而不是单个词：「引发热议」出现在一条有信息的摘要里也正常，
+    单看词会误伤。但一条摘要里出现两个以上套话词、或套话占了篇幅一半以上，
+    基本就是没读正文、拿模板话凑字数——那正是要拦的。
+    """
+    t = str(text or "")
+    hits, weight = [], 0
+    for w, wt in FLUFF_WORDS.items():
+        if w in t:
+            hits.append(w)
+            weight += len(w) * wt
+    return hits, (weight / float(len(t)) if t else 0.0)
+
+
 def qa_checks(payload, cfg=None):
     """交付前的机械质检。只查「可机械判定」的问题，语义分类仍需人工过一遍。"""
     cfg = cfg or load_cfg()
@@ -1043,6 +1404,104 @@ def qa_checks(payload, cfg=None):
     unknown = [s for s in (payload.get("scored") or []) if s.get("platform_key") == "unknown"]
     if unknown:
         add("WARN", "unknown_platform", "%d 条平台未被识别（按垂直源 100 门槛处理）" % len(unknown))
+
+    # 摘要与要点：脚本不代写，但超长和缺失要拦住
+    for item in sel:
+        cid = item.get("cluster_id") or item.get("id") or "?"
+        ex = item.get("excerpt") or ""
+        if len(ex) > EXCERPT_LIMIT:
+            add("WARN", "excerpt_long",
+                "%s 摘要 %d 字，超过 %d 字上限，导出时会被截断加「…」" % (cid, len(ex), EXCERPT_LIMIT))
+    digest = payload.get("digest") or []
+    if isinstance(digest, str):
+        digest = [digest] if digest.strip() else []
+    digest = [d for d in digest if str(d).strip()]
+    if sel and len(digest) < DIGEST_MIN_ITEMS:
+        add("WARN", "no_digest",
+            "「本期要点」只有 %d 条，少于 %d 条：应依据各条摘要提炼最重要信息后再交付"
+            % (len(digest), DIGEST_MIN_ITEMS))
+    hl = payload.get("highlights") or []
+    no_why = [h for h in hl if isinstance(h, dict) and not (h.get("why") or "").strip()]
+    if no_why:
+        add("WARN", "highlight_no_why",
+            "%d 条「值得优先关注」没写理由，导出时会被跳过" % len(no_why))
+
+    # 摘要质量硬门槛：抄袭标题、没比标题长的，一律打回重做
+    # 为什么是 ERROR：摘要是文档的信息量主体，抄标题等于让用户白点一趟链接。
+    for item in sel + app:
+        cid = item.get("cluster_id") or item.get("id") or "?"
+        title = str(item.get("title") or "").strip()
+        ex = str(item.get("excerpt") or "").strip()
+        if not ex:
+            continue          # 缺摘要已由上面的循环报过 no_excerpt
+        if norm_text(ex) == norm_text(title):
+            add("ERROR", "excerpt_same_title",
+                "%s 摘要与标题完全相同（「%s」）——这是把标题抄了一遍，"
+                "请重新抓取该网页正文，写一段讲清关键内容的摘要" % (cid, title))
+        elif len(ex) <= len(title):
+            add("ERROR", "excerpt_not_longer",
+                "%s 摘要 %d 字，未超过标题 %d 字——信息量不足，"
+                "请重新抓取该网页正文，把关键内容写进摘要" % (cid, len(ex), len(title)))
+        else:
+            hits, ratio = fluff_stats(ex)
+            if len(hits) >= 2 or ratio > 0.5:
+                add("ERROR", "excerpt_fluff",
+                    "%s 摘要疑似套话（命中：%s）——拿模板话凑字数等于没读正文，"
+                    "请重新抓取该网页正文再写" % (cid, "、".join(hits[:4])))
+            elif hits:
+                add("WARN", "excerpt_fluff_hint",
+                    "%s 摘要含套话表述（%s），确认关键内容是否已写清" % (cid, "、".join(hits[:2])))
+
+    # 来源质量：没做和做错是两回事，分开报
+    if sel:
+        # 管线产出的条目带 quality_norm（原始分已折算），只有两者都没有才算没做
+        missing = [e for e in sel
+                   if e.get("source_quality") in (None, "") and "quality_norm" not in e]
+        if len(missing) > len(sel) * 0.5:
+            add("WARN", "quality_missing",
+                "正文 %d/%d 条没填 source_quality：来源质量权重实际未生效，"
+                "营销号可能靠热度排到前面" % (len(missing), len(sel)))
+        low = [e for e in sel
+               if isinstance(e.get("quality_norm"), (int, float)) and e["quality_norm"] < 0.4]
+        hot = [e for e in low if isinstance(e.get("heat_mix"), (int, float)) and e["heat_mix"] >= 0.8]
+        if hot:
+            add("WARN", "hot_but_low_quality",
+                "%d 条热度很高但来源质量低（%s）：确认它们是否该留在正文"
+                % (len(hot), "、".join(str(e.get("cluster_id") or "?") for e in hot[:5])))
+        blocked = st.get("quality_blocked")
+        if blocked:
+            add("INFO", "quality_blocked_n",
+                "%d 个事件因命中硬旗标（标题党 / AI 水文 / 营销号）未进正文，已列进附录 C" % blocked)
+
+    # 关键数据：有正文却一条结构化数据都没有，多半是没提取
+    facts_all = [f for e in (sel + app) for f in (e.get("facts") or []) if isinstance(f, dict)]
+    if sel and not facts_all:
+        add("WARN", "no_facts",
+            "本轮没有任何 facts：报告里「关键数据」会是空的。"
+            "抓正文时顺手提取数字、金额、日期、指标，用户才不用从摘要里翻")
+    no_time = [f for f in facts_all if not str(f.get("as_of") or "").strip()]
+    if no_time:
+        add("WARN", "fact_no_as_of",
+            "%d 条关键数据没写 as_of：读者无法判断这个数字是什么时候的" % len(no_time))
+
+    # 核查与观点：有争议却不给分布/核查，等于把判断丢回给读者
+    vers = [v for e in (sel + app) for v in (e.get("verifications") or []) if isinstance(v, dict)]
+    if any((e.get("dimensions") or {}).get("信息确定性") in ("存疑", "待证实") for e in sel) and not vers:
+        add("WARN", "no_verifications",
+            "有「存疑 / 待证实」条目却没记录任何核查结论：争议类话题应写进 verifications")
+    bad_status = [v for v in vers if str(v.get("status") or "").strip() not in VERIFY_STATUS]
+    if bad_status:
+        add("WARN", "verify_status_invalid",
+            "%d 条核查记录的结论不取值于 %s" % (len(bad_status), " / ".join(VERIFY_STATUS)))
+    stances = {(e.get("dimensions") or {}).get("立场倾向") for e in sel} - {None, ""}
+    if len(stances & {"正面", "负面", "质疑"}) >= 2:
+        controversy, groups = viewpoint_groups(payload)
+        if not groups:
+            add("WARN", "no_viewpoints",
+                "正文出现对立立场，但没整理观点分布：执行方应把各方论点和出处写进 viewpoints")
+        elif not controversy:
+            add("WARN", "no_controversy",
+                "观点分布已填，但没有一句话说明争议焦点（viewpoints.controversy）")
     return issues
 
 
@@ -1255,6 +1714,144 @@ def selftest():
     checks.append(('热度未知条目(公众号/小红书)进附录',
                    any(e['title'] in ('小红书实测', '公众号长文') for e in rq['appendix'])))
 
+    # 输出路径边界：绝对路径与 .. 一律拒绝，工作区内相对路径放行
+    def _rejected(p):
+        try:
+            guard_workdir_path(p, "--out")
+            return False
+        except SystemExit:
+            return True
+
+    checks.append(("拒绝绝对路径作为输出目录",
+                   _rejected("/tmp/out") and _rejected("~/out") and _rejected("C:\\out")))
+    checks.append(("拒绝含 .. 的输出目录", _rejected("../out") and _rejected("a/../../out")))
+    checks.append(("放行工作区内相对输出目录", guard_workdir_path("out", "--outdir") == "out"))
+
+    # 摘要与要点的机械质检样本：一条正文 + 完整六维，供正反两向断言复用
+    payload_qa = {
+        "probe": {"mode": "absolute", "reliable": True},
+        "stats": {"selected": 1, "appendix": 0},
+        "selected": [{
+            "cluster_id": "E001", "title": "示例事件", "url": "https://e.com/a",
+            "excerpt": "一条长度正常的摘要。", "platforms": ["weibo"], "score": 50.0,
+            "dimensions": {"主题域": "科技 / 产品", "内容性质": "事实", "信息确定性": "已证实",
+                           "影响面": "行业", "立场倾向": "中性",
+                           "信源权威度": "权威媒体 / 专业机构"},
+        }],
+        "appendix": [],
+    }
+    bad = json.loads(json.dumps(payload_qa))       # 深拷贝一份干净样本
+    bad["selected"][0]["excerpt"] = "啊" * (EXCERPT_LIMIT + 60)
+    bad.pop("digest", None)
+    bad["highlights"] = [{"cluster_id": "E001", "title": "示例", "why": ""}]
+    codes = {i["code"] for i in qa_checks(bad, cfg)}
+    checks.append(("qa 拦住超长摘要", "excerpt_long" in codes))
+    checks.append(("qa 拦住要点不足", "no_digest" in codes))
+    checks.append(("qa 拦住缺理由的重点条目", "highlight_no_why" in codes))
+    ok_payload = json.loads(json.dumps(payload_qa))
+    ok_payload["digest"] = ["要点一", "要点二", "要点三"]
+    ok_payload["highlights"] = [{"cluster_id": "E001", "title": "示例", "why": "一手材料"}]
+    ok_codes = {i["code"] for i in qa_checks(ok_payload, cfg)}
+    checks.append(("qa 不误报填写完整的样本",
+                   not ({"excerpt_long", "no_digest", "highlight_no_why"} & ok_codes)))
+
+    # 摘要质量硬门槛：抄标题、没比标题长的，必须打回
+    copied = json.loads(json.dumps(payload_qa))
+    copied["selected"][0]["excerpt"] = copied["selected"][0]["title"]
+    checks.append(("qa 拦住「摘要抄标题」",
+                   "excerpt_same_title" in {i["code"] for i in qa_checks(copied, cfg)}))
+    shorter = json.loads(json.dumps(payload_qa))
+    shorter["selected"][0]["excerpt"] = "很短"
+    checks.append(("qa 拦住「摘要未长于标题」",
+                   "excerpt_not_longer" in {i["code"] for i in qa_checks(shorter, cfg)}))
+    checks.append(("qa 放行摘要长于标题的样本",
+                   not ({"excerpt_same_title", "excerpt_not_longer"} & ok_codes)))
+
+    # 套话摘要：命中两个以上套话词或密度过半，必须打回
+    fluff = json.loads(json.dumps(payload_qa))
+    fluff["selected"][0]["excerpt"] = ("据悉，该事件引发了广泛关注，相关各方正在积极推进各项工作，"
+                                       "详情请点击链接查看。")
+    checks.append(("qa 拦住套话摘要",
+                   "excerpt_fluff" in {i["code"] for i in qa_checks(fluff, cfg)}))
+    hint = json.loads(json.dumps(payload_qa))
+    hint["selected"][0]["excerpt"] = "该事件引发了广泛关注，三方立场对立，争议焦点在计费透明度。"
+    checks.append(("qa 对半套话摘要只提示不阻断",
+                   "excerpt_fluff_hint" in {i["code"] for i in qa_checks(hint, cfg)}
+                   and "excerpt_fluff" not in {i["code"] for i in qa_checks(hint, cfg)}))
+    checks.append(("qa 放行无套话的摘要", not ({"excerpt_fluff", "excerpt_fluff_hint"} & ok_codes)))
+    checks.append(("套话统计：纯套话密度高、正当摘要为 0",
+                   fluff_stats("据悉，该事件引发了广泛关注，详情请点击链接查看。")[1] > 0.5
+                   and fluff_stats("新版细则明确社保年限与套数认定标准。")[0] == []))
+
+    # 来源质量：热度再高，命中硬旗标也进不了正文
+    qbase = {"platform": "微博", "metric_type": "read", "published_at": "2026-10-20",
+             "engagement": {"comments": 100, "shares": 200, "likes": 1000},
+             "excerpt": "一条足够长且讲清关键内容的中性摘要文本。"}
+    mkt = dict(qbase, id="m1", title="震惊！某银行利率大跳水，速看！", url="https://weibo.com/1",
+               metric=980000, source_quality=1, quality_flags=["title_bait", "marketing"])
+    auth = dict(qbase, id="a1", title="多家银行下调存款利率", url="https://www.cls.cn/1",
+                platform="财联社", metric=25000, source_quality=5)
+    qres = run_pipeline([mkt, auth], 5, cfg)
+    checks.append(("营销号命中硬旗标被拦在正文外",
+                   qres["stats"].get("quality_blocked") == 1
+                   and all("震惊" not in (e.get("title") or "") for e in qres["selected"])))
+    checks.append(("高质量源在正文中排第一",
+                   bool(qres["selected"]) and qres["selected"][0].get("quality_norm", 0) >= 0.9))
+    checks.append(("质量归一：缺省中性、旗标扣分",
+                   quality_norm({}, cfg)[0] == 0.5
+                   and quality_norm({"source_quality": 1}, cfg)[0] < 0.25
+                   and quality_norm({"source_quality": 2, "quality_flags": ["no_citation"]}, cfg)[0] < 0.4))
+
+    # 关键数据 / 核查 / 观点分布
+    demo = {
+        "selected": [
+            {"cluster_id": "E001", "title": "示例一", "platforms": ["weibo"],
+             "facts": [{"label": "利率", "value": "1.95", "unit": "%", "as_of": "2026-10-18"},
+                       {"label": "利率", "value": "1.95", "unit": "%", "as_of": "2026-10-18"}],
+             "verifications": [{"claim": "某事", "status": "待核实", "by": "—", "date": "2026-10-18"},
+                               {"claim": "另一事", "status": "已证实", "by": "官方", "date": "2026-10-17"}]},
+        ],
+        "viewpoints": {"controversy": "焦点 A", "groups": [
+            {"stance": "正面", "summary": "支持", "points": ["论点一"], "refs": ["E001"]}]},
+    }
+    fs = collect_facts(demo["selected"])
+    checks.append(("关键数据：同一数据去重", len(fs) == 1 and fs[0]["value"] == "1.95%"))
+    vs = collect_verifications(demo["selected"])
+    checks.append(("核查记录：已证实排在待核实前",
+                   [v["status"] for v in vs] == ["已证实", "待核实"]))
+    c0, g0 = viewpoint_groups(demo)
+    checks.append(("观点分布：焦点与分组可解析",
+                   c0 == "焦点 A" and len(g0) == 1 and g0[0]["stance"] == "正面"))
+    md = render_report({"selected": demo["selected"], "stats": {
+        "candidates": 1, "passed_gate": 1, "clusters": 1, "selected": 1, "requested": 1,
+        "shortfall": 0, "appendix": 0}, "probe": {"mode": "absolute", "explain": "自检"},
+        "digest": ["要点一", "要点二", "要点三"], "viewpoints": demo["viewpoints"],
+        "highlights": [{"cluster_id": "E001", "title": "示例一", "why": "一手材料"}]}, "自检")
+    checks.append(("报告含三章：关键数据 / 观点分布 / 核查情况",
+                   all(("## " + t) in md for t in ("一、关键数据", "二、观点分布", "三、核查情况"))))
+    checks.append(("报告关键数据渲染为表格", "| 数据项 | 数值 | 截至 | 来源 | 说明 |" in md))
+    # 章节结构：正文编号必须连续，附录必须排在正文之后（曾经跳号、附录夹在中间）
+    nums = re.findall(r"^## ([一二三四五六七八九十])、", md, re.M)
+    checks.append(("报告正文章节编号连续", nums == list("一二三四五六七八九十")))
+    checks.append(("附录位于正文之后", md.index("## 附录 A") > md.index("## 九、方法学")))
+
+    # 平台映射回归：中文媒体不得并成 wechat，tiers key 必须有中文显示名
+    import re as _re
+    al = cfg.get("aliases") or {}
+    merged = [k for k in ("cls", "qbitai", "xinzhiyuan", "jiqizhixin")
+              if al.get(k) == "wechat"]
+    checks.append(("四家媒体未并成 wechat", not merged))
+    zh_by_key = {}
+    for a, k in al.items():
+        if not a.startswith("_") and _re.search(r"[一-鿿]", a) and k not in zh_by_key:
+            zh_by_key[k] = a
+    no_label = [p for t in ("A", "B") for p in (cfg["tiers"][t].get("platforms") or [])
+                if not zh_by_key.get(p)]
+    checks.append(("A/B 档平台都有中文显示名", not no_label))
+    checks.append(("平台解析与显示名一致（财联社）",
+                   platform_key({"platform": "财联社"}, cfg) == ("cls", "B")
+                   and platform_labels().get("cls") == "财联社"))
+
     ok = all(v for _, v in checks)
     for name, v in checks:
         print(("  PASS  " if v else "  FAIL  ") + name)
@@ -1265,6 +1862,23 @@ def selftest():
 
 
 # ---------------------------------------------------------------- CLI
+def guard_workdir_path(path, flag):
+    """输出路径只收工作区内的相对路径：绝对路径与含 .. 的路径一律拒绝。
+
+    与 SKILL.md「十一、权限与数据边界」声明的文件边界一致——不写工作区之外的
+    路径。export_doc.py 的 --out 与 lark-cli 同样只收相对路径，三边口径统一。
+    """
+    p = str(path or "")
+    if not p:
+        raise SystemExit("失败：%s 不能为空" % flag)
+    if os.path.isabs(p) or p.startswith("~") or (len(p) > 1 and p[1] == ":"):
+        raise SystemExit("失败：%s 只接受工作区内的相对路径，拒绝绝对路径：%s" % (flag, p))
+    parts = p.replace("\\", "/").split("/")
+    if ".." in parts:
+        raise SystemExit("失败：%s 不允许包含 .. 上级目录：%s" % (flag, p))
+    return p
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description="话题棱镜 TopicPrism")
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -1309,6 +1923,11 @@ def main(argv=None):
 
     if args.cmd == "self-test":
         return selftest()
+
+    if getattr(args, "outdir", None) is not None:
+        args.outdir = guard_workdir_path(args.outdir, "--outdir")
+    if getattr(args, "out", None):
+        args.out = guard_workdir_path(args.out, "--out")
 
     if args.cmd == "probe":
         entries = load_entries(args.src)
@@ -1409,6 +2028,15 @@ def main(argv=None):
     outdir = Path(args.outdir)
     outdir.mkdir(parents=True, exist_ok=True)
     rejected = [s for s in res["scored"] if s.get("verdict") not in ("pass", "pass_unknown")]
+    for c in res.get("quality_blocked") or []:
+        lbl = "、".join((cfg.get("credibility", {}).get("flags", {}) or {}).get(f, f)
+                       for f in (c.get("quality_flags") or []))
+        rejected.append({
+            "title": c.get("title"),
+            "platform": (c.get("platforms") or ["?"])[0],
+            "url": c.get("url"),
+            "reason": "来源质量拦截：%s" % (lbl or "命中硬旗标"),
+        })
     res["stats"]["budget"] = args.budget
     res["stats"]["dropped"] = len(LAST_DROPPED)
     res["stats"]["generated_at"] = datetime.now().strftime("%Y-%m-%d %H:%M")

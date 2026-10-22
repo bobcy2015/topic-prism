@@ -17,23 +17,35 @@
       "label": "中等流量平台",
       "min_metric": 300,
       "platforms": [
-        "zhihu",
-        "tieba",
-        "douban",
-        "wechat",
-        "toutiao",
         "baidu",
-        "36kr",
-        "sspai",
-        "sina",
-        "ifeng",
-        "sohu",
+        "douban",
+        "tieba",
+        "toutiao",
+        "wechat",
+        "zhihu",
         "163",
-        "qq",
+        "36kr",
+        "baai",
+        "c114pro",
+        "cls",
+        "cnfin",
+        "cnstock",
         "eastmoney",
+        "fromgeek",
+        "gmw",
+        "ifeng",
+        "jiqizhixin",
+        "qbitai",
+        "qq",
+        "shobserver",
+        "sina",
         "smzdm",
+        "sohu",
+        "sspai",
+        "stdaily",
         "thepaper",
-        "c114pro"
+        "xinzhiyuan",
+        "zggskf"
       ]
     },
     "C": {
@@ -50,7 +62,7 @@
     "B站": "bilibili",
     "哔哩哔哩": "bilibili",
     "小红书": "xiaohongshu",
-    "red": "xiaohongshu",
+    "rednote": "xiaohongshu",
     "快手": "kuaishou",
     "知乎": "zhihu",
     "贴吧": "tieba",
@@ -91,15 +103,23 @@
     "中国科技网": "stdaily",
     "C114Pro": "c114pro",
     "中国商业周刊网": "zggskf",
-    "量子位": "wechat",
-    "新智元": "wechat",
-    "机器之心": "wechat",
-    "财联社": "wechat",
+    "量子位": "qbitai",
+    "qbitai": "qbitai",
+    "新智元": "xinzhiyuan",
+    "机器之心": "jiqizhixin",
+    "jiqizhixin": "jiqizhixin",
+    "财联社": "cls",
+    "cls": "cls",
+    "cls.cn": "cls",
     "智源社区": "baai",
     "上观新闻": "shobserver",
     "上海证券报": "cnstock",
     "光明网": "gmw",
-    "极客网": "fromgeek"
+    "极客网": "fromgeek",
+    "澎湃新闻": "thepaper",
+    "澎湃": "thepaper",
+    "C114通信网": "c114pro",
+    "C114": "c114pro"
   },
   "metric_types_rank_based": [
     "rank"
@@ -127,14 +147,36 @@
   "freshness_half_life_days": 10,
   "probe_min_sample": 20,
   "score_weights": {
-    "heat": 0.5,
-    "cross": 0.22,
-    "engagement": 0.18,
-    "freshness": 0.1
+    "heat": 0.38,
+    "cross": 0.18,
+    "engagement": 0.12,
+    "freshness": 0.08,
+    "credibility": 0.24
   },
   "_dedup_comment": "标题用字符 bigram Dice；实体通道要求型号/数字/专名高度重合且标题仍有基础相似度；模板化系列不合并",
-  "_score_comment": "heat=本档内归一与同池分位混合；cross=跨平台分布；engagement=互动；freshness=时间新鲜度半衰期衰减",
+  "_score_comment": "heat=本档内归一与同池分位混合；cross=跨平台分布；engagement=互动；freshness=时间新鲜度半衰期衰减；credibility=来源质量（站点/账号/页面三级证据，见 credibility 段）。来源质量占第二权重，理由：营销号的 10万+ 很容易压过权威媒体的 2万，热度不能单独决定谁排前面。",
   "unknown_appendix_ratio": 0.2,
   "unknown_appendix_max": 15,
-  "_unknown_appendix_comment": "热度未知条目不再只在正文凑不满时才进附录：按 n × ratio（默认 1 条起、取整），最多 max 条；正文目标条数 N 不受附录占用。改这里即改呈现密度。"
+  "_unknown_appendix_comment": "热度未知条目不再只在正文凑不满时才进附录：按 n × ratio（默认 1 条起、取整），最多 max 条；正文目标条数 N 不受附录占用。改这里即改呈现密度。",
+  "_aliases_comment": "别名值必须是 tiers 里出现过的 key，否则该平台落 C 档（地板 100）。两类已犯过的错：① 把有自有站点的媒体并成 wechat（财联社、量子位、新智元、机器之心都是独立媒体），报告会显示成「微信公众号」且与真公众号文章被判为同一平台、丢掉跨平台分布信号；② 在 tiers 里登记了 key 却没配中文别名（thepaper、c114pro 曾如此），文档会直接显示内部 key。rednote 是小红书的海外名，刻意不用裸 red——那会和 reddit 混，且被抬到 A 档 1000 门槛。未列出的平台一律按 C 档处理，qa 会以 WARN 提示「平台未识别」。",
+  "credibility": {
+    "_comment": "来源质量：执行方按三级证据给 source_quality 0-5 分——站点（是否具名媒体/机构/官方）、账号（是否认证、是否有历史作品）、页面（是否标注出处、是否一手材料）。缺省按中性 0.5 处理：不填不会被惩罚，但 qa 会提示覆盖率；填错比不填更糟。quality_flags 命中一项扣 flag_penalty，用于把「热度高但明显不可信」的条目压下去。",
+    "default_norm": 0.5,
+    "max_score": 5,
+    "flag_penalty": 0.15,
+    "flags": {
+      "title_bait": "标题党：标题与正文不符、夸大其词、情绪化诱导",
+      "aigc_mass": "疑似 AI 批量生成：句式模板化、无具体人名地名时间、无出处",
+      "no_citation": "无出处：未标注原始来源，或全篇转述找不到原发",
+      "marketing": "营销号：以带货、引流、涨粉为目的，内容以推广为主",
+      "repost_no_source": "转载未注明原发：明确是转载但不说来源",
+      "outdated": "时效存疑：内容明显早于事件发生时间，或拿旧文充当新进展"
+    },
+    "blocking_flags": [
+      "title_bait",
+      "aigc_mass",
+      "marketing"
+    ],
+    "_blocking_comment": "硬旗标：命中即不进正文（仍保留在「未纳入条目与原因」里，写清原因）。理由：标题党、AI 批量水文、营销号靠的就是热度，靠扣分压不住——它们可以有几倍于权威源的阅读量。这类内容一旦进了正文，用户最先看到的就是它。no_citation / repost_no_source / outdated 只扣分不排除，因为一手爆料也可能暂时没有出处。"
+  }
 }

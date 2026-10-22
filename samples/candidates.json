@@ -13,7 +13,8 @@
     },
     "excerpt": "新版细则明确社保年限与套数认定标准。",
     "url": "https://e.com/a1",
-    "published_at": "2026-10-18"
+    "published_at": "2026-10-18",
+    "source_quality": 3
   },
   {
     "id": "a2",
@@ -29,7 +30,8 @@
     },
     "excerpt": "新版细则明确社保年限与套数认定标准。",
     "url": "https://e.com/a2",
-    "published_at": "2026-10-19"
+    "published_at": "2026-10-19",
+    "source_quality": 3
   },
   {
     "id": "b1",
@@ -44,7 +46,8 @@
     },
     "excerpt": "重写了调度器，带 benchmark。",
     "url": "https://e.com/b1",
-    "published_at": "2026-10-12"
+    "published_at": "2026-10-12",
+    "source_quality": 4
   },
   {
     "id": "b2",
@@ -56,9 +59,10 @@
     "engagement": {
       "comments": 6
     },
-    "excerpt": "对比了三种调度策略。",
+    "excerpt": "作者对三种调度策略做了基准对比，结论是贪心调度在长尾请求上延迟更低，但吞吐略逊于批处理。",
     "url": "https://e.com/b2",
-    "published_at": "2026-10-11"
+    "published_at": "2026-10-11",
+    "source_quality": 3
   },
   {
     "id": "c1",
@@ -69,7 +73,11 @@
     "metric_type": "rank",
     "excerpt": "同城热搜第一，讨论集中在处理方式的合理性，暂无官方回应。",
     "url": "https://e.com/c1",
-    "published_at": "2026-10-20"
+    "published_at": "2026-10-20",
+    "source_quality": 2,
+    "quality_flags": [
+      "title_bait"
+    ]
   },
   {
     "id": "c2",
@@ -80,7 +88,8 @@
     "metric_type": "read",
     "excerpt": "",
     "url": "https://e.com/c2",
-    "published_at": "2026-10-20"
+    "published_at": "2026-10-20",
+    "source_quality": 1
   },
   {
     "id": "d1",
@@ -90,9 +99,10 @@
     "qualifiers": [
       "official_or_bluev"
     ],
-    "excerpt": "公告全文。",
+    "excerpt": "公告明确新注册主体需在 30 日内完成备案，逾期未办将暂停相关业务资质，过渡期设三个月。",
     "url": "https://e.com/d1",
-    "published_at": "2026-10-15"
+    "published_at": "2026-10-15",
+    "source_quality": 5
   },
   {
     "id": "e1",
@@ -110,7 +120,8 @@
     "also_on": [
       "HackerNews"
     ],
-    "published_at": "2026-10-17"
+    "published_at": "2026-10-17",
+    "source_quality": 3
   },
   {
     "id": "e2",
@@ -128,7 +139,8 @@
     "qualifiers": [
       "multi_media_3"
     ],
-    "published_at": "2026-10-16"
+    "published_at": "2026-10-16",
+    "source_quality": 4
   },
   {
     "id": "g1",
@@ -137,7 +149,8 @@
     "platform": "微信公众号",
     "url": "https://e.com/g1",
     "excerpt": "转自公众号，逐项测算三类商户的成本变化。",
-    "published_at": "2026-10-19"
+    "published_at": "2026-10-19",
+    "source_quality": 3
   },
   {
     "id": "g2",
@@ -145,7 +158,8 @@
     "author": "用户B",
     "platform": "小红书",
     "url": "https://e.com/g2",
-    "excerpt": "三条部署踩坑提醒。",
-    "published_at": "2026-10-20"
+    "excerpt": "实测 7B 模型在 16G 内存机器上的部署全过程：量化方案选择、显存占用峰值，以及三个常见报错的解决办法。",
+    "published_at": "2026-10-20",
+    "source_quality": 3
   }
 ]
